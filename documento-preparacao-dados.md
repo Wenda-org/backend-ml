@@ -1,8 +1,8 @@
-# 🔧 Documento de Preparação e Processamento de Dados - AngolaVis/SmartTour Angola
+# 🔧 Documento de Preparação e Processamento de Dados - Projeto Wenda
 
 ## 📋 Resumo Executivo
 
-Este documento detalha o processo completo de preparação, limpeza e estruturação dos dados implementado para o projeto **AngolaVis** (SmartTour Angola). Nossa pipeline de dados processa informações de múltiplas fontes para alimentar três modelos principais de Machine Learning: **previsão de procura turística**, **segmentação de visitantes** e **sistema de recomendação** de pontos de interesse, garantindo qualidade, consistência e escalabilidade.
+Este documento detalha o processo completo de preparação, limpeza e estruturação dos dados implementado para o projeto **Wenda**. Nossa pipeline de dados processa informações de múltiplas fontes para alimentar três modelos principais de Machine Learning: **previsão de procura turística**, **segmentação de visitantes** e **sistema de recomendação** de pontos de interesse, garantindo qualidade, consistência e escalabilidade.
 
 **Status:** ✅ Implementado e em produção  
 **Última atualização:** 24 de Outubro de 2024
@@ -50,7 +50,7 @@ Este documento detalha o processo completo de preparação, limpeza e estrutura�
 ## 📊 Fontes de Dados Processadas
 
 **Descrição Geral do Processo:**
-Implementamos um sistema robusto de coleta e processamento de dados de múltiplas fontes heterogêneas para alimentar os três modelos de Machine Learning do projeto AngolaVis. O processo envolveu a criação de coletores especializados para cada fonte, com tratamento específico para diferentes formatos (PDF, JSON, XML, CSV) e implementação de validações automáticas para garantir a qualidade dos dados.
+Implementamos um sistema robusto de coleta e processamento de dados de múltiplas fontes heterogêneas para alimentar os três modelos de Machine Learning do projeto Wenda. O processo envolveu a criação de coletores especializados para cada fonte, com tratamento específico para diferentes formatos (PDF, JSON, XML, CSV) e implementação de validações automáticas para garantir a qualidade dos dados.
 
 Utilizamos uma arquitetura baseada em classes Python modulares, cada uma responsável por uma fonte específica, permitindo processamento paralelo e manutenção independente. O sistema implementa retry automático, rate limiting para APIs externas e logging detalhado para auditoria completa do processo.
 
@@ -238,7 +238,7 @@ Resultados: 3 datasets especializados com performance de query 5x superior a um 
 
 ### Três Datasets Principais para os Modelos ML
 
-#### 1. Dataset de Previsão: `angolav_forecast_dataset`
+#### 1. Dataset de Previsão: `wenda_forecast_dataset`
 
 **Objetivo e Design:**
 Este dataset foi otimizado para modelos de séries temporais (ARIMA, Prophet, LSTM) que preveem chegadas turísticas e ocupação hoteleira. A estrutura privilegia features temporais, lags sazonais e variáveis exógenas que influenciam a procura turística.
@@ -249,7 +249,7 @@ Características principais:
 - **Features:** 25 variáveis incluindo lags, médias móveis e indicadores exógenos
 - **Targets:** Múltiplos (visitantes, receitas, ocupação) para modelos multi-output
 ```sql
-CREATE TABLE angolav_forecast_dataset (
+CREATE TABLE wenda_forecast_dataset (
     -- Identificadores
     id SERIAL PRIMARY KEY,
     data_referencia DATE NOT NULL,
@@ -299,7 +299,7 @@ CREATE TABLE angolav_forecast_dataset (
     UNIQUE(data_referencia, provincia)
 );
 
-#### 2. Dataset de Segmentação: `angolav_segmentation_dataset`
+#### 2. Dataset de Segmentação: `wenda_segmentation_dataset`
 
 **Objetivo e Design:**
 Estruturado para algoritmos de clustering (K-Means, HDBSCAN) que identificam segmentos de visitantes com comportamentos similares. O schema captura características demográficas, comportamentais e preferências de viagem para criar personas de turistas.
@@ -310,7 +310,7 @@ Características principais:
 - **Features:** 15 variáveis comportamentais e 4 scores de interesse calculados
 - **Uso:** Clustering não-supervisionado e análise de personas
 ```sql
-CREATE TABLE angolav_segmentation_dataset (
+CREATE TABLE wenda_segmentation_dataset (
     -- Identificadores
     id SERIAL PRIMARY KEY,
     visitor_id VARCHAR(50),  -- Hash anônimo do visitante
@@ -345,7 +345,7 @@ CREATE TABLE angolav_segmentation_dataset (
     UNIQUE(visitor_id, data_visita)
 );
 
-#### 3. Dataset de Recomendação: `angolav_recommendation_dataset`
+#### 3. Dataset de Recomendação: `wenda_recommendation_dataset`
 
 **Objetivo e Design:**
 Otimizado para sistemas de recomendação híbridos (content-based + collaborative filtering) que sugerem POIs e roteiros personalizados. A estrutura suporta similarity search, embeddings vetoriais e filtragem por múltiplos critérios.
@@ -356,7 +356,7 @@ Características principais:
 - **Features:** 18 variáveis de conteúdo + embeddings vetoriais (128 dimensões)
 - **Uso:** Recomendação em tempo real e descoberta de conteúdo
 ```sql
-CREATE TABLE angolav_recommendation_dataset (
+CREATE TABLE wenda_recommendation_dataset (
     -- Identificadores
     id SERIAL PRIMARY KEY,
     poi_id VARCHAR(50) NOT NULL,
@@ -553,19 +553,19 @@ Os três datasets principais atendem aos requisitos de qualidade estabelecidos, 
 
 ### Estatísticas dos Datasets Processados
 
-#### Dataset de Previsão (`angolav_forecast_dataset`)
+#### Dataset de Previsão (`wenda_forecast_dataset`)
 - **Registos:** 2,340 entradas (13 anos × 12 meses × 15 províncias)
 - **Cobertura temporal:** Janeiro 2010 - Outubro 2024
 - **Features:** 25 variáveis (temporais, climáticas, geográficas, económicas)
 - **Target:** `total_visitantes`, `taxa_ocupacao`
 
-#### Dataset de Segmentação (`angolav_segmentation_dataset`)
+#### Dataset de Segmentação (`wenda_segmentation_dataset`)
 - **Registos:** 45,670 visitantes únicos
 - **Cobertura:** Visitantes nacionais (60%) e internacionais (40%)
 - **Features:** 15 variáveis comportamentais e demográficas
 - **Clusters esperados:** 4-6 segmentos distintos
 
-#### Dataset de Recomendação (`angolav_recommendation_dataset`)
+#### Dataset de Recomendação (`wenda_recommendation_dataset`)
 - **Registos:** 1,247 POIs únicos
 - **Cobertura geográfica:** Foco em Luanda (45%), Benguela (25%), Namibe (20%)
 - **Categorias:** Atrações (40%), Restaurantes (30%), Hotéis (20%), Atividades (10%)
@@ -628,7 +628,7 @@ Implementamos com sucesso uma pipeline robusta de dados que processa informaçõ
 - **Segmentação:** Silhouette Score de 0.67 (meta: >0.6) com 5 clusters bem definidos
 - **Recomendação:** Precision@5 de 0.84 (meta: >0.8) em testes offline
 
-**Contribuição para o Projeto AngolaVis:**
+**Contribuição para o Projeto Wenda:**
 Esta infraestrutura de dados estabelece a base técnica para um sistema de turismo inteligente que pode impactar positivamente o setor turístico angolano. Os datasets criados permitem análises preditivas, segmentação de mercado e recomendações personalizadas que antes não eram possíveis.
 
 **Próximos Marcos:**
