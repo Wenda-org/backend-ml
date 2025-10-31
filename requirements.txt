@@ -1,0 +1,16 @@
+fastapi==0.99.0
+uvicorn[standard]==0.22.0
+sqlalchemy==1.4.49
+asyncpg==0.28.0
+alembic==1.11.1
+pydantic==1.10.9
+python-dotenv==1.0.0
+
+# ML / util
+numpy==1.26.5
+pandas==2.2.2
+scikit-learn==1.3.2
+joblib==1.3.2
+
+# Optional utils
+psycopg[binary]==3.1.8
