@@ -59,16 +59,46 @@ OpenAPI / docs está disponível em `http://localhost:8000/docs` (quando a app e
 Nota sobre NeonDB / produção
 - Configure a variável `DATABASE_URL` para a connection string fornecida pelo Neon. O Makefile e a aplicação leem `DATABASE_URL` do ambiente ou de `.env`.
 
-Rotas principais (esqueleto)
-- GET / -> status básico
-- GET /api/health -> status da aplicação
-- POST /api/predict -> inferência (payload: features) — endpoint placeholder que será ligado ao serviço de modelos
+Rotas principais
+- `GET /` → status básico
+- `GET /api/health` → health check da aplicação
+- `POST /api/predict` → inferência (payload: features) — endpoint placeholder legado
 
-Próximos passos recomendados
-1. Definir o contrato exato do payload de inferência (features esperadas e formato do output).
-2. Implementar cargas e versionamento de modelos (joblib / MLflow) em `app/services`.
-3. Adicionar migrations (Alembic) e scripts de inicialização da DB.
-4. Criar testes unitários para a API e para as funções de preprocessamento.
+### 🤖 Endpoints ML (v0.1.0)
+- `GET /api/ml/health` → status do módulo ML
+- `POST /api/ml/forecast` → previsão de visitantes (província, mês, ano)
+- `POST /api/ml/recommend` → recomendações personalizadas de destinos
+- `GET /api/ml/segments` → perfis de turistas (clusters)
+
+**📚 Documentação completa:** Ver [`docs/API.md`](docs/API.md) para exemplos detalhados de request/response.
+
+**Dados de exemplo:**  
+O banco de dados contém:
+- 6 users (turistas, operadores, admin)
+- 23 destinos turísticos (Luanda, Benguela, Huíla, Namibe, etc.)
+- 216 registros de estatísticas (2022-2024, 6 províncias × 12 meses × 3 anos)
+
+Para popular o BD:
+```bash
+export DATABASE_URL="postgresql://..."
+python3 scripts/seed_data.py
+```
+
+Próximos passos
+
+### ✅ Completo (v0.1.0)
+1. ✅ Migrations Alembic criadas e executadas
+2. ✅ Endpoints ML implementados (forecast, recommend, segments)
+3. ✅ Dados de seed para desenvolvimento
+4. ✅ Documentação da API
+
+### 🚧 Em desenvolvimento
+1. Implementar modelos ML reais (SARIMA/Prophet para previsões)
+2. Content-based filtering para recomendações
+3. Clustering real (K-Means) para segmentação
+4. Testes automatizados (pytest)
+5. Autenticação JWT
+6. Cache de previsões frequentes
 
 Licença & Contribuição
 - Este repositório é a base inicial — sinta-se à vontade para abrir issues/PRs com melhorias.

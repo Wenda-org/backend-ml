@@ -3,8 +3,12 @@ from pydantic import BaseModel
 from typing import Dict, Any
 
 from app.core.config import settings
+from app.api import ml
 
 router = APIRouter()
+
+# Incluir rotas de ML
+router.include_router(ml.router)
 
 
 class HealthResp(BaseModel):
