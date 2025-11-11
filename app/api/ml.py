@@ -13,6 +13,7 @@ from sqlalchemy import select, func, and_
 
 from app.db import get_db
 from app.models import TourismStatistics, Destination, User
+from app.services.forecast import get_forecast_service
 
 
 router = APIRouter(prefix="/ml", tags=["Machine Learning"])
@@ -119,15 +120,17 @@ async def forecast_visitors(
     """
     Prevê número de visitantes para uma província/mês/ano
     
-    **Placeholder:** Atualmente usa média histórica + tendência.
-    Futuramente será substituído por modelo de séries temporais (SARIMA/Prophet).
+    **Usa modelo treinado:** RandomForestRegressor por província
+    Se o modelo não existir para a província, usa fallback com média histórica.
     
-    **Algoritmo placeholder:**
-    1. Busca dados históricos dos últimos 3 anos para a província
-    2. Calcula média do mesmo mês em anos anteriores
-    3. Aplica tendência de crescimento (5% ao ano)
-    4. Adiciona sazonalidade
-    5. Calcula intervalo de confiança (±15%)
+    **Features do modelo:**
+    - year, month (transformado em sin/cos para sazonalidade)
+    - occupancy_rate, avg_stay_days (opcionais, defaultam para 0)
+    
+    **Algoritmo com modelo treinado:**
+    1. Tenta carregar modelo treinado para a província
+    2. Se existe, usa o modelo para predição com intervalo de confiança
+    3. Se não existe, fallback: média histórica + tendência + sazonalidade
     """
     
     # Validar província
@@ -138,6 +141,29 @@ async def forecast_visitors(
             detail=f"Província inválida. Use uma de: {', '.join(valid_provinces)}"
         )
     
+    forecast_service = get_forecast_service()
+    
+    # Tentar usar modelo treinado
+    prediction = forecast_service.predict(
+        province=request.province,
+        year=request.year,
+        month=request.month,
+        occupancy_rate=0.0,  # Pode ser expandido para aceitar no request
+        avg_stay_days=0.0
+    )
+    
+    if prediction:
+        # Modelo disponível - usar predição real
+        return ForecastResponse(
+            province=request.province,
+            month=request.month,
+            year=request.year,
+            predicted_visitors=prediction['predicted_visitors'],
+            confidence_interval=ConfidenceInterval(**prediction['confidence_interval']),
+            model_version="v1.0.0-rf-trained"
+        )
+    
+    # Fallback: modelo não disponível - usar baseline
     # Buscar dados históricos do mesmo mês
     query = select(
         func.avg(
@@ -194,7 +220,7 @@ async def forecast_visitors(
         year=request.year,
         predicted_visitors=predicted,
         confidence_interval=confidence_interval,
-        model_version="v0.1.0-baseline-avg"
+        model_version="v0.1.0-baseline-fallback"
     )
 
 
@@ -384,6 +410,45 @@ async def get_tourist_segments():
 
 
 # ============================================================================
+# Endpoint de modelos e métricas
+# ============================================================================
+
+class ModelInfo(BaseModel):
+    """Informações sobre modelo treinado"""
+    province: str
+    model_path: str
+    metrics: dict
+    loaded: bool
+
+
+class ModelsListResponse(BaseModel):
+    """Lista de modelos disponíveis"""
+    models: List[ModelInfo]
+    total_models: int
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+@router.get("/models", response_model=ModelsListResponse)
+async def list_available_models():
+    """
+    Lista todos os modelos treinados disponíveis com suas métricas
+    
+    Retorna informações sobre:
+    - Província do modelo
+    - Path do arquivo do modelo
+    - Métricas (MAE, MAPE, test samples)
+    - Status de carregamento
+    """
+    forecast_service = get_forecast_service()
+    models = forecast_service.list_available_models()
+    
+    return ModelsListResponse(
+        models=[ModelInfo(**m) for m in models],
+        total_models=len(models)
+    )
+
+
+# ============================================================================
 # Endpoint de saúde do módulo ML
 # ============================================================================
 
@@ -392,10 +457,14 @@ async def ml_health_check():
     """
     Verifica status do módulo ML
     """
+    forecast_service = get_forecast_service()
+    available_models = forecast_service.list_available_models()
+    
     return {
         "status": "healthy",
         "module": "ml",
-        "endpoints": ["forecast", "recommend", "segments"],
-        "model_status": "placeholder - using baseline algorithms",
+        "endpoints": ["forecast", "recommend", "segments", "models"],
+        "trained_models": len(available_models),
+        "model_status": "trained models available" if available_models else "using fallback",
         "timestamp": datetime.utcnow().isoformat()
     }

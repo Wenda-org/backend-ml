@@ -1,0 +1,668 @@
+[
+  {
+    "province": "Luanda",
+    "status": "evaluated",
+    "test_samples": 12,
+    "train_samples": 24,
+    "metrics": {
+      "mae": 707.2283333333334,
+      "rmse": 954.7405857526606,
+      "mape": 4.849459845852036,
+      "mean_actual": 13337.75,
+      "mean_predicted": 12997.653333333334
+    },
+    "monthly_breakdown": [
+      {
+        "month": 1,
+        "year": 2024,
+        "actual": 15504,
+        "predicted": 16698,
+        "error": 1194,
+        "error_pct": 7.7069143446852495
+      },
+      {
+        "month": 2,
+        "year": 2024,
+        "actual": 11256,
+        "predicted": 11269,
+        "error": 13,
+        "error_pct": 0.11567164179104865
+      },
+      {
+        "month": 3,
+        "year": 2024,
+        "actual": 10389,
+        "predicted": 10758,
+        "error": 369,
+        "error_pct": 3.5547213398787108
+      },
+      {
+        "month": 4,
+        "year": 2024,
+        "actual": 11320,
+        "predicted": 11230,
+        "error": 89,
+        "error_pct": 0.794257950530034
+      },
+      {
+        "month": 5,
+        "year": 2024,
+        "actual": 13332,
+        "predicted": 11866,
+        "error": 1465,
+        "error_pct": 10.991149114911494
+      },
+      {
+        "month": 6,
+        "year": 2024,
+        "actual": 12090,
+        "predicted": 12230,
+        "error": 140,
+        "error_pct": 1.159057071960291
+      },
+      {
+        "month": 7,
+        "year": 2024,
+        "actual": 16023,
+        "predicted": 15591,
+        "error": 431,
+        "error_pct": 2.692442114460462
+      },
+      {
+        "month": 8,
+        "year": 2024,
+        "actual": 16510,
+        "predicted": 15517,
+        "error": 992,
+        "error_pct": 6.011689884918235
+      },
+      {
+        "month": 9,
+        "year": 2024,
+        "actual": 11752,
+        "predicted": 11450,
+        "error": 301,
+        "error_pct": 2.5633934649421377
+      },
+      {
+        "month": 10,
+        "year": 2024,
+        "actual": 10871,
+        "predicted": 11356,
+        "error": 485,
+        "error_pct": 4.4656425351853475
+      },
+      {
+        "month": 11,
+        "year": 2024,
+        "actual": 12565,
+        "predicted": 11834,
+        "error": 730,
+        "error_pct": 5.810505372065262
+      },
+      {
+        "month": 12,
+        "year": 2024,
+        "actual": 18441,
+        "predicted": 16167,
+        "error": 2273,
+        "error_pct": 12.328073314896155
+      }
+    ]
+  },
+  {
+    "province": "Benguela",
+    "status": "evaluated",
+    "test_samples": 12,
+    "train_samples": 24,
+    "metrics": {
+      "mae": 472.89000000000004,
+      "rmse": 580.2143412567464,
+      "mape": 8.233384127801733,
+      "mean_actual": 5290.0,
+      "mean_predicted": 4817.11
+    },
+    "monthly_breakdown": [
+      {
+        "month": 1,
+        "year": 2024,
+        "actual": 6672,
+        "predicted": 6250,
+        "error": 421,
+        "error_pct": 6.3184952038369255
+      },
+      {
+        "month": 2,
+        "year": 2024,
+        "actual": 4802,
+        "predicted": 4189,
+        "error": 612,
+        "error_pct": 12.760724698042491
+      },
+      {
+        "month": 3,
+        "year": 2024,
+        "actual": 3638,
+        "predicted": 3552,
+        "error": 85,
+        "error_pct": 2.360912589334796
+      },
+      {
+        "month": 4,
+        "year": 2024,
+        "actual": 4790,
+        "predicted": 4252,
+        "error": 537,
+        "error_pct": 11.227766179540719
+      },
+      {
+        "month": 5,
+        "year": 2024,
+        "actual": 4640,
+        "predicted": 4175,
+        "error": 464,
+        "error_pct": 10.016379310344831
+      },
+      {
+        "month": 6,
+        "year": 2024,
+        "actual": 5134,
+        "predicted": 4651,
+        "error": 482,
+        "error_pct": 9.40338917023764
+      },
+      {
+        "month": 7,
+        "year": 2024,
+        "actual": 6754,
+        "predicted": 5666,
+        "error": 1087,
+        "error_pct": 16.102309742374892
+      },
+      {
+        "month": 8,
+        "year": 2024,
+        "actual": 6041,
+        "predicted": 5408,
+        "error": 632,
+        "error_pct": 10.46581691772885
+      },
+      {
+        "month": 9,
+        "year": 2024,
+        "actual": 4235,
+        "predicted": 4213,
+        "error": 21,
+        "error_pct": 0.5105076741440352
+      },
+      {
+        "month": 10,
+        "year": 2024,
+        "actual": 4313,
+        "predicted": 4277,
+        "error": 35,
+        "error_pct": 0.8212381173197327
+      },
+      {
+        "month": 11,
+        "year": 2024,
+        "actual": 4851,
+        "predicted": 4605,
+        "error": 245,
+        "error_pct": 5.052360338074627
+      },
+      {
+        "month": 12,
+        "year": 2024,
+        "actual": 7610,
+        "predicted": 6562,
+        "error": 1047,
+        "error_pct": 13.760709592641257
+      }
+    ]
+  },
+  {
+    "province": "Huila",
+    "status": "evaluated",
+    "test_samples": 12,
+    "train_samples": 24,
+    "metrics": {
+      "mae": 324.5741666666667,
+      "rmse": 398.9584092254062,
+      "mape": 8.94294730896122,
+      "mean_actual": 3467.9166666666665,
+      "mean_predicted": 3170.2391666666667
+    },
+    "monthly_breakdown": [
+      {
+        "month": 1,
+        "year": 2024,
+        "actual": 4005,
+        "predicted": 3927,
+        "error": 77,
+        "error_pct": 1.944319600499373
+      },
+      {
+        "month": 2,
+        "year": 2024,
+        "actual": 3043,
+        "predicted": 2908,
+        "error": 134,
+        "error_pct": 4.41307919815971
+      },
+      {
+        "month": 3,
+        "year": 2024,
+        "actual": 2741,
+        "predicted": 2500,
+        "error": 240,
+        "error_pct": 8.786209412623128
+      },
+      {
+        "month": 4,
+        "year": 2024,
+        "actual": 2723,
+        "predicted": 2884,
+        "error": 161,
+        "error_pct": 5.926551597502758
+      },
+      {
+        "month": 5,
+        "year": 2024,
+        "actual": 3325,
+        "predicted": 2810,
+        "error": 514,
+        "error_pct": 15.470676691729327
+      },
+      {
+        "month": 6,
+        "year": 2024,
+        "actual": 3535,
+        "predicted": 3177,
+        "error": 357,
+        "error_pct": 10.12362093352192
+      },
+      {
+        "month": 7,
+        "year": 2024,
+        "actual": 3795,
+        "predicted": 3668,
+        "error": 126,
+        "error_pct": 3.3375494071146203
+      },
+      {
+        "month": 8,
+        "year": 2024,
+        "actual": 4307,
+        "predicted": 3532,
+        "error": 774,
+        "error_pct": 17.973531460413277
+      },
+      {
+        "month": 9,
+        "year": 2024,
+        "actual": 3006,
+        "predicted": 2752,
+        "error": 253,
+        "error_pct": 8.418829008649373
+      },
+      {
+        "month": 10,
+        "year": 2024,
+        "actual": 2933,
+        "predicted": 2782,
+        "error": 150,
+        "error_pct": 5.120013637913401
+      },
+      {
+        "month": 11,
+        "year": 2024,
+        "actual": 3236,
+        "predicted": 2904,
+        "error": 331,
+        "error_pct": 10.233930778739186
+      },
+      {
+        "month": 12,
+        "year": 2024,
+        "actual": 4966,
+        "predicted": 4192,
+        "error": 773,
+        "error_pct": 15.567055980668554
+      }
+    ]
+  },
+  {
+    "province": "Namibe",
+    "status": "evaluated",
+    "test_samples": 12,
+    "train_samples": 24,
+    "metrics": {
+      "mae": 138.82750000000001,
+      "rmse": 164.23128840652342,
+      "mape": 7.825886842220656,
+      "mean_actual": 1724.0833333333333,
+      "mean_predicted": 1585.3374999999996
+    },
+    "monthly_breakdown": [
+      {
+        "month": 1,
+        "year": 2024,
+        "actual": 2313,
+        "predicted": 2059,
+        "error": 253,
+        "error_pct": 10.955036748811061
+      },
+      {
+        "month": 2,
+        "year": 2024,
+        "actual": 1459,
+        "predicted": 1356,
+        "error": 102,
+        "error_pct": 7.013708019191221
+      },
+      {
+        "month": 3,
+        "year": 2024,
+        "actual": 1409,
+        "predicted": 1276,
+        "error": 132,
+        "error_pct": 9.42441447835344
+      },
+      {
+        "month": 4,
+        "year": 2024,
+        "actual": 1406,
+        "predicted": 1406,
+        "error": 0,
+        "error_pct": 0.03485064011379865
+      },
+      {
+        "month": 5,
+        "year": 2024,
+        "actual": 1590,
+        "predicted": 1439,
+        "error": 150,
+        "error_pct": 9.463522012578618
+      },
+      {
+        "month": 6,
+        "year": 2024,
+        "actual": 1681,
+        "predicted": 1615,
+        "error": 65,
+        "error_pct": 3.9101725163593106
+      },
+      {
+        "month": 7,
+        "year": 2024,
+        "actual": 2171,
+        "predicted": 1827,
+        "error": 343,
+        "error_pct": 15.806540764624602
+      },
+      {
+        "month": 8,
+        "year": 2024,
+        "actual": 1893,
+        "predicted": 1825,
+        "error": 67,
+        "error_pct": 3.5419968304278897
+      },
+      {
+        "month": 9,
+        "year": 2024,
+        "actual": 1407,
+        "predicted": 1322,
+        "error": 84,
+        "error_pct": 5.999289267945991
+      },
+      {
+        "month": 10,
+        "year": 2024,
+        "actual": 1526,
+        "predicted": 1330,
+        "error": 195,
+        "error_pct": 12.78702490170381
+      },
+      {
+        "month": 11,
+        "year": 2024,
+        "actual": 1528,
+        "predicted": 1382,
+        "error": 145,
+        "error_pct": 9.55301047120419
+      },
+      {
+        "month": 12,
+        "year": 2024,
+        "actual": 2306,
+        "predicted": 2180,
+        "error": 125,
+        "error_pct": 5.421075455333921
+      }
+    ]
+  },
+  {
+    "province": "Cunene",
+    "status": "evaluated",
+    "test_samples": 12,
+    "train_samples": 24,
+    "metrics": {
+      "mae": 80.99083333333333,
+      "rmse": 93.15032013722052,
+      "mape": 8.349881660881065,
+      "mean_actual": 916.0,
+      "mean_predicted": 835.0091666666667
+    },
+    "monthly_breakdown": [
+      {
+        "month": 1,
+        "year": 2024,
+        "actual": 1208,
+        "predicted": 1080,
+        "error": 127,
+        "error_pct": 10.593543046357619
+      },
+      {
+        "month": 2,
+        "year": 2024,
+        "actual": 838,
+        "predicted": 715,
+        "error": 122,
+        "error_pct": 14.668257756563241
+      },
+      {
+        "month": 3,
+        "year": 2024,
+        "actual": 643,
+        "predicted": 638,
+        "error": 4,
+        "error_pct": 0.743390357698285
+      },
+      {
+        "month": 4,
+        "year": 2024,
+        "actual": 775,
+        "predicted": 712,
+        "error": 62,
+        "error_pct": 8.007741935483864
+      },
+      {
+        "month": 5,
+        "year": 2024,
+        "actual": 828,
+        "predicted": 758,
+        "error": 69,
+        "error_pct": 8.386473429951698
+      },
+      {
+        "month": 6,
+        "year": 2024,
+        "actual": 830,
+        "predicted": 802,
+        "error": 27,
+        "error_pct": 3.2554216867469856
+      },
+      {
+        "month": 7,
+        "year": 2024,
+        "actual": 1184,
+        "predicted": 1048,
+        "error": 135,
+        "error_pct": 11.436655405405412
+      },
+      {
+        "month": 8,
+        "year": 2024,
+        "actual": 1098,
+        "predicted": 1000,
+        "error": 97,
+        "error_pct": 8.83606557377049
+      },
+      {
+        "month": 9,
+        "year": 2024,
+        "actual": 824,
+        "predicted": 712,
+        "error": 111,
+        "error_pct": 13.544902912621362
+      },
+      {
+        "month": 10,
+        "year": 2024,
+        "actual": 714,
+        "predicted": 702,
+        "error": 11,
+        "error_pct": 1.6148459383753464
+      },
+      {
+        "month": 11,
+        "year": 2024,
+        "actual": 845,
+        "predicted": 778,
+        "error": 66,
+        "error_pct": 7.822485207100595
+      },
+      {
+        "month": 12,
+        "year": 2024,
+        "actual": 1205,
+        "predicted": 1068,
+        "error": 136,
+        "error_pct": 11.288796680497923
+      }
+    ]
+  },
+  {
+    "province": "Malanje",
+    "status": "evaluated",
+    "test_samples": 12,
+    "train_samples": 24,
+    "metrics": {
+      "mae": 209.64750000000004,
+      "rmse": 252.79475256618755,
+      "mape": 8.601822328582104,
+      "mean_actual": 2328.9166666666665,
+      "mean_predicted": 2128.669166666666
+    },
+    "monthly_breakdown": [
+      {
+        "month": 1,
+        "year": 2024,
+        "actual": 3038,
+        "predicted": 2513,
+        "error": 524,
+        "error_pct": 17.263331138907176
+      },
+      {
+        "month": 2,
+        "year": 2024,
+        "actual": 2070,
+        "predicted": 1868,
+        "error": 201,
+        "error_pct": 9.749275362318837
+      },
+      {
+        "month": 3,
+        "year": 2024,
+        "actual": 1916,
+        "predicted": 1770,
+        "error": 145,
+        "error_pct": 7.580375782881002
+      },
+      {
+        "month": 4,
+        "year": 2024,
+        "actual": 1926,
+        "predicted": 1948,
+        "error": 22,
+        "error_pct": 1.1656282450674997
+      },
+      {
+        "month": 5,
+        "year": 2024,
+        "actual": 1934,
+        "predicted": 1967,
+        "error": 33,
+        "error_pct": 1.7554291623578098
+      },
+      {
+        "month": 6,
+        "year": 2024,
+        "actual": 2225,
+        "predicted": 2088,
+        "error": 136,
+        "error_pct": 6.155505617977529
+      },
+      {
+        "month": 7,
+        "year": 2024,
+        "actual": 2691,
+        "predicted": 2613,
+        "error": 77,
+        "error_pct": 2.8821999256781847
+      },
+      {
+        "month": 8,
+        "year": 2024,
+        "actual": 2898,
+        "predicted": 2626,
+        "error": 271,
+        "error_pct": 9.35507246376812
+      },
+      {
+        "month": 9,
+        "year": 2024,
+        "actual": 2070,
+        "predicted": 1882,
+        "error": 187,
+        "error_pct": 9.056038647342996
+      },
+      {
+        "month": 10,
+        "year": 2024,
+        "actual": 2016,
+        "predicted": 1808,
+        "error": 207,
+        "error_pct": 10.276289682539687
+      },
+      {
+        "month": 11,
+        "year": 2024,
+        "actual": 2096,
+        "predicted": 1770,
+        "error": 325,
+        "error_pct": 15.512881679389318
+      },
+      {
+        "month": 12,
+        "year": 2024,
+        "actual": 3067,
+        "predicted": 2684,
+        "error": 382,
+        "error_pct": 12.469840234757086
+      }
+    ]
+  }
+]
