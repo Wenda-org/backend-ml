@@ -534,36 +534,78 @@ async def get_tourist_segments():
 
 class ModelInfo(BaseModel):
     """Informações sobre modelo treinado"""
-    province: str
-    model_path: str
+    model_type: str  # forecast, clustering, recommender
+    model_name: str
+    version: str
+    algorithm: str
     metrics: dict
-    loaded: bool
+    status: str
+    trained_on: Optional[str] = None
 
 
 class ModelsListResponse(BaseModel):
     """Lista de modelos disponíveis"""
     models: List[ModelInfo]
     total_models: int
+    by_type: dict = {}
     generated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 @router.get("/models", response_model=ModelsListResponse)
-async def list_available_models():
+async def list_available_models(db: AsyncSession = Depends(get_db)):
     """
-    Lista todos os modelos treinados disponíveis com suas métricas
+    Lista todos os modelos ML treinados e registrados
     
     Retorna informações sobre:
-    - Província do modelo
-    - Path do arquivo do modelo
-    - Métricas (MAE, MAPE, test samples)
-    - Status de carregamento
+    - Forecast models (RandomForest por província)
+    - Clustering model (K-Means)
+    - Recommender model (Content-Based)
+    
+    Inclui métricas, versões, algoritmos e status de cada modelo.
     """
-    forecast_service = get_forecast_service()
-    models = forecast_service.list_available_models()
+    from app.models import MLModelsRegistry
+    from sqlalchemy import select
+    
+    # Buscar todos os modelos registrados
+    result = await db.execute(
+        select(MLModelsRegistry).where(MLModelsRegistry.status == "active")
+    )
+    registered_models = result.scalars().all()
+    
+    models_list = []
+    by_type = {"forecast": 0, "clustering": 0, "recommender": 0}
+    
+    for model in registered_models:
+        # Determinar tipo do modelo
+        if model.model_name.startswith("forecast_"):
+            model_type = "forecast"
+        elif "clustering" in model.model_name:
+            model_type = "clustering"
+        elif "recommender" in model.model_name:
+            model_type = "recommender"
+        else:
+            model_type = "unknown"
+        
+        by_type[model_type] = by_type.get(model_type, 0) + 1
+        
+        # Converter metrics JSONB para dict
+        import json
+        metrics = json.loads(model.metrics) if isinstance(model.metrics, str) else model.metrics
+        
+        models_list.append(ModelInfo(
+            model_type=model_type,
+            model_name=model.model_name,
+            version=model.version,
+            algorithm=model.algorithm,
+            metrics=metrics,
+            status=model.status,
+            trained_on=model.trained_on.isoformat() if model.trained_on else None
+        ))
     
     return ModelsListResponse(
-        models=[ModelInfo(**m) for m in models],
-        total_models=len(models)
+        models=models_list,
+        total_models=len(models_list),
+        by_type=by_type
     )
 
 
