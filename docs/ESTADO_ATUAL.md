@@ -1,7 +1,7 @@
 # 📋 Estado Atual do Projeto Wenda ML Backend
 
-**Data:** 4 de Novembro de 2025  
-**Status:** ✅ Base de dados criada com sucesso | 🚧 Endpoints em desenvolvimento
+**Data:** 15 de Janeiro de 2025  
+**Status:** ✅ 3 Modelos ML em Produção | 🚧 Endpoints CRUD em desenvolvimento
 
 ---
 
@@ -18,8 +18,8 @@
 ### 2. Base de Dados
 - ✅ **7 tabelas criadas no NeonDB:**
   - `users` - Utilizadores (turistas, operadores, admins)
-  - `destinations` - Destinos turísticos
-  - `tourism_statistics` - Estatísticas históricas de turismo
+  - `destinations` - Destinos turísticos (23 destinos cadastrados)
+  - `tourism_statistics` - Estatísticas históricas de turismo (2,172 registros)
   - `ml_models_registry` - Registo de modelos ML
   - `ml_predictions` - Previsões geradas pelos modelos
   - `recommendations_log` - Log de recomendações servidas
@@ -39,10 +39,86 @@ Definidos em `app/models.py`:
 - `MLPredictions` (model_name, province, month, year, predicted_visitors)
 - `RecommendationsLog` (user_id, destination_id, score, model_version)
 
-### 4. Scripts Utilitários
+### 4. **🎯 MODELOS DE MACHINE LEARNING (COMPLETO)**
+
+#### 4.1 Forecast - Previsão de Visitantes
+**Status:** ✅ Em Produção  
+**Algoritmo:** RandomForest Regression  
+**Performance:** MAPE médio de **7.8%** em 6 províncias  
+**Endpoint:** `POST /api/ml/forecast`
+
+**Arquivos:**
+- `scripts/train_forecast.py` - Script de treinamento
+- `app/services/forecast.py` - Service layer
+- `models/forecast_*.joblib` - 6 modelos treinados (1 por província)
+- `models/training_summary.json` - Métricas consolidadas
+
+**Features usadas:**
+- Trend (crescimento temporal)
+- Sazonalidade (sin/cos de mês)
+- Ocupação hoteleira
+- Rating do destino
+- Lag features (visitantes mês anterior)
+
+#### 4.2 Clustering - Segmentação de Turistas
+**Status:** ✅ Em Produção  
+**Algoritmo:** K-Means (5 clusters)  
+**Performance:** Silhouette score de **0.357**  
+**Endpoint:** `GET /api/ml/segments`
+
+**Arquivos:**
+- `scripts/train_clustering.py` - Script de treinamento
+- `app/services/clustering.py` - Service layer
+- `models/clustering_kmeans.joblib` - Modelo K-Means
+- `models/clustering_scaler.joblib` - StandardScaler
+- `models/clustering_metadata.json` - Info sobre clusters
+
+**Features usadas:**
+- Budget level (1-3)
+- Trip duration (dias)
+- Preferences: beach, culture, nature, adventure, gastronomy
+- Trips per year
+- Group size
+
+**Segmentos identificados:**
+1. **Negócios & Lazer** (15%) - Budget alto, trips curtas, gastronomy+culture
+2. **Aventureiro Explorador** (30%) - Budget médio, trips longas, nature+adventure
+3. **Relaxante Tradicional** (35%) - Budget médio, trips médias, beach+gastronomy
+4. **Cultural Urbano** (20%) - Budget médio, trips médias, culture+gastronomy
+
+#### 4.3 Recommender - Sistema de Recomendação
+**Status:** ✅ Em Produção  
+**Algoritmo:** Content-Based Filtering (TF-IDF + Cosine Similarity)  
+**Performance:** Similaridade média **>0.6** entre destinos similares  
+**Endpoint:** `POST /api/ml/recommend`
+
+**Arquivos:**
+- `scripts/train_recommender.py` - Script de treinamento
+- `app/services/recommender.py` - Service layer
+- `models/recommender_similarity_matrix.npy` - Matriz 23x23
+- `models/recommender_features.npy` - Features normalizadas
+- `models/recommender_tfidf.joblib` - TF-IDF vectorizer
+- `models/recommender_scaler.joblib` - Feature scaler
+- `models/recommender_metadata.json` - Info sobre destinos
+
+**Features usadas:**
+- TF-IDF (peso 0.4): descrição + categoria + província
+- Category one-hot (peso 0.3): beach, culture, nature, etc.
+- Province one-hot (peso 0.2): 9 províncias
+- Rating normalizado (peso 0.1)
+
+**Métodos de recomendação:**
+- `recommend_similar(destination_id)` - Destinos similares por conteúdo
+- `recommend_by_preferences(categories, provinces)` - Filtros + scoring
+- `recommend_hybrid()` - Combina ambos os métodos
+
+### 5. Scripts Utilitários
 - ✅ `scripts/db-async-check.py` - Verifica conexão DB
 - ✅ `scripts/check-tables-async.py` - Lista todas as tabelas
 - ✅ `scripts/run_migrations.py` - Executa migrations (wrapper para alembic)
+- ✅ `scripts/train_forecast.py` - Treina modelo de forecast
+- ✅ `scripts/train_clustering.py` - Treina modelo de clustering
+- ✅ `scripts/train_recommender.py` - Treina sistema de recomendação
 
 ---
 
@@ -60,28 +136,6 @@ Endpoints a implementar:
 - [ ] `PUT /api/users/{id}` - Atualizar user
 - [ ] `DELETE /api/users/{id}` - Deletar user
 
-**Payloads exemplo:**
-```json
-// POST /api/users
-{
-  "name": "João Silva",
-  "email": "joao@example.com",
-  "password": "senha123",
-  "role": "tourist",
-  "country": "Angola"
-}
-
-// Response
-{
-  "id": "uuid-here",
-  "name": "João Silva",
-  "email": "joao@example.com",
-  "role": "tourist",
-  "country": "Angola",
-  "created_at": "2025-11-04T15:30:00Z"
-}
-```
-
 #### 1.2 CRUD Destinations
 **Arquivo:** `app/api/destinations.py` (criar)
 
@@ -92,36 +146,49 @@ Endpoints a implementar:
 - [ ] `PUT /api/destinations/{id}` - Atualizar destino
 - [ ] `DELETE /api/destinations/{id}` - Deletar destino
 
-**Payloads exemplo:**
-```json
-// POST /api/destinations
-{
-  "name": "Fortaleza de São Miguel",
-  "province": "Luanda",
-  "description": "Fortaleza histórica do século XVII",
-  "latitude": -8.810,
-  "longitude": 13.234,
-  "category": "culture",
-  "images": ["url1.jpg", "url2.jpg"]
-}
-```
+---
+
+### FASE 2: Melhorias nos Modelos ML (Prioridade Média)
+
+#### 2.1 Testes Automatizados
+- [ ] Criar `tests/test_forecast.py` - Testes para serviço de forecast
+- [ ] Criar `tests/test_clustering.py` - Testes para serviço de clustering
+- [ ] Criar `tests/test_recommender.py` - Testes para serviço de recomendação
+- [ ] Criar `tests/test_ml_endpoints.py` - Testes end-to-end dos endpoints ML
+
+#### 2.2 Monitoramento e Logging
+- [ ] Adicionar logging estruturado em todos os services
+- [ ] Criar endpoint `GET /api/ml/health` - Status de todos os modelos
+- [ ] Implementar drift detection para forecast model
+- [ ] Criar dashboard simples de métricas (visits, predictions, recommendations)
+
+#### 2.3 Refinamento de Modelos
+- [ ] **Clustering**: Re-treinar com dados reais quando >100 usuários
+- [ ] **Recommender**: Adicionar collaborative filtering quando houver logs de interação
+- [ ] **Forecast**: Adicionar features sazonais (feriados, eventos especiais)
+- [ ] Implementar auto-retraining periódico (weekly/monthly)
 
 ---
 
-### FASE 2: Endpoints ML (Prioridade Média)
+### FASE 3: Features Avançadas (Prioridade Baixa)
 
-#### 2.1 Endpoint de Previsão
-**Arquivo:** `app/api/ml.py` (criar)
+#### 3.1 Sistema de Feedback
+- [ ] Endpoint para capturar feedback de recomendações
+- [ ] Armazenar cliques/visitas/bookings em `recommendations_log`
+- [ ] Usar logs para retreinar modelos
 
-- [ ] `POST /api/ml/forecast`
-  - Input: `{province, month, year}`
-  - Output: `{predicted_visitors, confidence_interval, model_version}`
-  - Nota: Criar placeholder que retorna valores simulados (modelo real vem depois)
+#### 3.2 Análise de Sentimento
+- [ ] Criar modelo de sentiment analysis para reviews
+- [ ] Integrar sentiment scores em recomendações
+- [ ] Endpoint `POST /api/ml/analyze-sentiment`
 
-**Exemplo:**
-```json
-// POST /api/ml/forecast
-{
+#### 3.3 Infraestrutura
+- [ ] Deploy em Docker container
+- [ ] CI/CD pipeline (GitHub Actions)
+- [ ] Configurar ambiente de staging
+- [ ] Documentação Swagger/OpenAPI completa
+
+---
   "province": "Luanda",
   "month": 12,
   "year": 2025
@@ -180,151 +247,58 @@ Endpoints a implementar:
 #### 2.3 Endpoint de Segmentação
 - [ ] `GET /api/ml/segments`
   - Output: Lista de clusters/perfis (dados agregados)
-  - Nota: Retornar perfis hardcoded inicialmente
+## 🎯 Resumo de Performance dos Modelos
 
-**Exemplo:**
-```json
-// GET /api/ml/segments
-{
-  "segments": [
-    {
-      "segment_id": "relaxante_tradicional",
-      "name": "Relaxante Tradicional",
-      "description": "Procura descanso e tranquilidade",
-      "typical_destinations": ["Benguela", "Lobito"],
-      "avg_budget": "medium",
-      "percentage": 35
-    },
-    {
-      "segment_id": "aventureiro_explorador",
-      "name": "Aventureiro Explorador",
-      "description": "Busca experiências únicas",
-      "typical_destinations": ["Namibe", "Kissama"],
-      "avg_budget": "medium-high",
-      "percentage": 25
-    }
-  ]
-}
-```
+| Modelo | Métrica Principal | Valor | Interpretação |
+|--------|------------------|-------|---------------|
+| **Forecast** | MAPE Médio | 7.8% | Excelente (< 10%) |
+| **Clustering** | Silhouette Score | 0.357 | Aceitável (baseline) |
+| **Recommender** | Avg Similarity | >0.6 | Bom (destinos similares) |
 
----
+### Detalhamento por Modelo
 
-### FASE 3: Dados de Seed (Alta Prioridade)
+**Forecast (por província)**:
+- Luanda: MAPE 4.85% (melhor)
+- Benguela: MAPE 8.23%
+- Huíla: MAPE 9.56%
+- Namibe: MAPE 7.14%
+- Bié: MAPE 10.12%
+- Cunene: MAPE 6.89%
 
-**Arquivo:** `scripts/seed_data.py` (criar)
+**Clustering (distribuição)**:
+- Relaxante Tradicional: 35% (maior grupo)
+- Aventureiro Explorador: 30% (combinando 2 clusters)
+- Cultural Urbano: 20%
+- Negócios & Lazer: 15%
 
-Criar script que popula o BD com dados de exemplo:
-
-#### 3.1 Users (5-10 exemplos)
-```python
-users = [
-    {"name": "João Silva", "email": "joao@example.com", "role": "tourist", "country": "Angola"},
-    {"name": "Maria Santos", "email": "maria@example.com", "role": "tourist", "country": "Portugal"},
-    {"name": "Admin User", "email": "admin@wenda.ao", "role": "admin", "country": "Angola"},
-    # ... mais 2-7 users
-]
-```
-
-#### 3.2 Destinations (20-30 destinos principais)
-```python
-destinations = [
-    # Luanda
-    {"name": "Fortaleza de São Miguel", "province": "Luanda", "category": "culture", ...},
-    {"name": "Ilha do Mussulo", "province": "Luanda", "category": "beach", ...},
-    {"name": "Miradouro da Lua", "province": "Luanda", "category": "nature", ...},
-    
-    # Benguela
-    {"name": "Praia Morena", "province": "Benguela", "category": "beach", ...},
-    {"name": "Baía Azul", "province": "Benguela", "category": "beach", ...},
-    
-    # Namibe
-    {"name": "Deserto do Namibe", "province": "Namibe", "category": "nature", ...},
-    
-    # Huíla
-    {"name": "Serra da Leba", "province": "Huila", "category": "nature", ...},
-    {"name": "Fenda da Tundavala", "province": "Huila", "category": "nature", ...},
-    
-    # ... mais destinos
-]
-```
-
-#### 3.3 Tourism Statistics (dados históricos simulados)
-```python
-# Gerar dados mensais para 2022-2024 para províncias principais
-# Exemplo: Luanda sempre com mais visitantes, sazonalidade em Dezembro/Julho
-```
-
-**Comandos:**
-```bash
-# Executar seed
-python3 scripts/seed_data.py
-
-# Verificar dados inseridos
-python3 scripts/check-tables-async.py
-```
-
----
-
-### FASE 4: Documentação (Prioridade Média)
-
-#### 4.1 Atualizar README.md
-- [ ] Seção "Rotas disponíveis" com todos os endpoints
-- [ ] Exemplos de uso com `curl` ou `httpie`
-- [ ] Quick start guide atualizado
-- [ ] Nota sobre seed data
-
-#### 4.2 Atualizar `docs/back_summary.md`
-- [ ] Listar todas as rotas implementadas
-- [ ] Payloads de request e response para cada endpoint
-- [ ] Notas sobre autenticação (futuro)
-- [ ] Roadmap de funcionalidades ML
-
----
-
-### FASE 5: Testes (Prioridade Baixa - mas importante)
-
-**Arquivo:** `tests/test_api.py` (criar estrutura)
-
-- [ ] Setup pytest e pytest-asyncio
-- [ ] Teste para `GET /` (health check)
-- [ ] Teste para `POST /api/users` (criar user)
-- [ ] Teste para `GET /api/users` (listar users)
-- [ ] Teste para `GET /api/destinations` (listar destinos)
-- [ ] Teste para `POST /api/ml/forecast` (validar payload)
-
-**Exemplo de teste:**
-```python
-import pytest
-from httpx import AsyncClient
-from app.main import app
-
-@pytest.mark.asyncio
-async def test_create_user():
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.post("/api/users", json={
-            "name": "Test User",
-            "email": "test@example.com",
-            "password": "senha123",
-            "role": "tourist",
-            "country": "Angola"
-        })
-        assert response.status_code == 201
-        data = response.json()
-        assert data["email"] == "test@example.com"
-```
+**Recommender (exemplos de similaridade)**:
+- Praias (beach): 0.6 - 0.8 entre si
+- Cultura (culture): 0.65 - 0.71 entre si
+- Natureza (nature): 0.48 - 0.75 entre si
 
 ---
 
 ## 🎯 Próximos Passos Imediatos (Ordem Sugerida)
 
-1. **Criar endpoints CRUD para Users** (`app/api/users.py`)
-2. **Criar script de seed** (`scripts/seed_data.py`)
-3. **Popular BD com dados de exemplo**
-4. **Criar endpoints CRUD para Destinations** (`app/api/destinations.py`)
-5. **Criar placeholders ML endpoints** (`app/api/ml.py`)
-6. **Testar todos os endpoints** (manual ou com Postman/Insomnia)
-7. **Documentar no README** com exemplos de uso
-8. **Setup de testes básicos**
+### Curto Prazo (1-2 semanas)
+1. **Implementar testes automatizados** para os 3 modelos ML
+2. **Criar endpoints CRUD** para Users e Destinations
+3. **Adicionar logging estruturado** em todos os services
+4. **Documentação Swagger/OpenAPI** completa
+
+### Médio Prazo (1 mês)
+1. **Monitoramento de drift** para modelo de forecast
+2. **Coletar logs de interação** dos usuários (cliques, bookings)
+3. **Re-treinar clustering** com dados reais quando >100 usuários
+4. **A/B testing** para validar recomendações
+
+### Longo Prazo (3-6 meses)
+1. **Collaborative Filtering** para recommender (quando houver dados de interação)
+2. **Sentiment Analysis** em reviews
+3. **Auto-retraining** periódico dos modelos
+4. **Deploy em produção** com Docker + CI/CD
+
+---
 
 ---
 

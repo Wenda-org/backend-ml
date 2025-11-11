@@ -14,6 +14,8 @@ from sqlalchemy import select, func, and_
 from app.db import get_db
 from app.models import TourismStatistics, Destination, User
 from app.services.forecast import get_forecast_service
+from app.services.clustering import get_clustering_service
+from app.services.recommender import get_recommender_service
 
 
 router = APIRouter(prefix="/ml", tags=["Machine Learning"])
@@ -232,19 +234,68 @@ async def recommend_destinations(
     """
     Recomenda destinos personalizados baseado em preferências
     
-    **Placeholder:** Usa filtros simples + popularidade.
-    Futuramente implementará:
-    - Content-based filtering (similaridade de destinos)
-    - Collaborative filtering (comportamento de usuários similares)
-    - Hybrid approach
+    **Usa modelo treinado:** Content-Based Filtering com TF-IDF + Cosine Similarity
+    Se o modelo não existir, usa fallback com filtros simples + rating.
     
-    **Algoritmo placeholder:**
-    1. Filtra destinos por categorias preferidas
-    2. Filtra por províncias (se especificado)
-    3. Ordena por rating + popularidade
-    4. Retorna top N com scores calculados
+    **Features do modelo:**
+    - TF-IDF em descrição do destino
+    - One-hot encoding de categoria e província
+    - Rating normalizado
+    
+    **Algoritmo com modelo treinado:**
+    1. Tenta usar RecommenderService para recomendações
+    2. Filtra por preferências (categoria, província)
+    3. Ordena por score de similaridade ou rating
+    4. Retorna top N com scores e razões
     """
     
+    recommender_service = get_recommender_service()
+    
+    # Try to use trained model
+    recommendations_data = recommender_service.recommend_by_preferences(
+        categories=request.preferences.categories,
+        provinces=request.preferences.provinces,
+        min_rating=None,  # No hard filter, let ranking decide
+        n_recommendations=request.limit
+    )
+    
+    if recommendations_data:
+        # Model available - use real recommendations
+        recommendations = []
+        
+        for rec in recommendations_data:
+            # Generate reason
+            reasons = []
+            if request.preferences.categories and rec['category'] in request.preferences.categories:
+                reasons.append(f"Matches your interest in {rec['category']}")
+            if rec['rating_avg'] and rec['rating_avg'] >= 4.5:
+                reasons.append("Highly rated destination")
+            if rec['province']:
+                reasons.append(f"Located in {rec['province']}")
+            if not reasons:
+                reasons.append("Recommended based on content similarity")
+            
+            reason = " | ".join(reasons)
+            
+            recommendations.append(
+                DestinationRecommendation(
+                    destination_id=rec['destination_id'],
+                    name=rec['name'],
+                    province=rec['province'],
+                    category=rec['category'],
+                    description="",  # Not in metadata, would need DB query
+                    rating_avg=rec['rating_avg'],
+                    score=rec['score'],
+                    reason=reason
+                )
+            )
+        
+        return RecommendResponse(
+            recommendations=recommendations,
+            model_version="v1.0.0-content-based-trained"
+        )
+    
+    # Fallback: model not available - use database query
     # Construir query base
     query = select(Destination)
     
@@ -310,7 +361,7 @@ async def recommend_destinations(
     
     return RecommendResponse(
         recommendations=recommendations,
-        model_version="v0.1.0-content-filter"
+        model_version="v0.1.0-content-filter-fallback"
     )
 
 
@@ -319,16 +370,84 @@ async def get_tourist_segments():
     """
     Retorna perfis/clusters de turistas identificados
     
-    **Placeholder:** Perfis hardcoded baseados nos docs de estratégia.
-    Futuramente será gerado por clustering (K-Means) sobre dados reais de:
-    - Padrões de visita
-    - Gastos médios
-    - Preferências de categorias
-    - Duração de estadia
+    **Usa modelo treinado:** K-Means clustering com 5 segmentos
+    Se o modelo não existir, usa fallback com perfis hardcoded.
     
-    **Fonte:** docs/perfis-viajantes-wenda.md
+    **Features do modelo:**
+    - Budget preference (low/medium/high)
+    - Trip duration (days)
+    - Activity preferences (beach, culture, nature, adventure, gastronomy)
+    - Travel frequency (trips per year)
+    - Group size
+    
+    **Algoritmo:**
+    1. Tenta carregar modelo K-Means treinado e metadata
+    2. Se existe, retorna segmentos do modelo real
+    3. Se não existe, fallback para perfis documentados
     """
     
+    clustering_service = get_clustering_service()
+    
+    # Try to use trained model
+    segments_data = clustering_service.get_segments()
+    
+    if segments_data:
+        # Model available - use real clusters
+        segments = []
+        for seg in segments_data:
+            # Map characteristics to budget string
+            budget_val = seg['characteristics']['avg_budget']
+            if budget_val >= 2.7:
+                budget_str = "high"
+            elif budget_val >= 2.3:
+                budget_str = "medium-high"
+            elif budget_val >= 1.7:
+                budget_str = "medium"
+            else:
+                budget_str = "low"
+            
+            # Get top destinations based on preferences
+            prefs = seg['characteristics']['preferences']
+            if prefs['beach'] > 0.7:
+                typical_dest = ["Benguela", "Lobito", "Namibe"]
+            elif prefs['culture'] > 0.7:
+                typical_dest = ["Luanda", "Benguela", "Lunda Norte"]
+            elif prefs['nature'] > 0.8:
+                typical_dest = ["Iona National Park", "Kissama", "Cunene"]
+            elif prefs['adventure'] > 0.7:
+                typical_dest = ["Namibe", "Huíla", "Malanje"]
+            else:
+                typical_dest = ["Luanda", "Benguela", "Huíla"]
+            
+            # Build characteristics list
+            chars = seg['characteristics']
+            characteristics = [
+                f"Budget: {budget_str}",
+                f"Avg trip: {chars['avg_trip_duration']:.0f} days",
+                f"Group size: {chars['avg_group_size']:.0f} people",
+                f"Travels {chars['trips_per_year']:.1f} times/year",
+                f"Top preferences: {max(prefs, key=prefs.get)}, {sorted(prefs.items(), key=lambda x: x[1], reverse=True)[1][0]}"
+            ]
+            
+            segments.append(
+                TouristSegment(
+                    segment_id=f"cluster_{seg['cluster_id']}",
+                    name=seg['name'],
+                    description=seg['description'],
+                    typical_destinations=typical_dest,
+                    avg_budget=budget_str,
+                    percentage=seg['percentage'],
+                    characteristics=characteristics
+                )
+            )
+        
+        return SegmentsResponse(
+            segments=segments,
+            total_segments=len(segments),
+            model_version="v1.0.0-kmeans-trained"
+        )
+    
+    # Fallback: model not available - use hardcoded profiles
     segments = [
         TouristSegment(
             segment_id="relaxante_tradicional",
@@ -405,7 +524,7 @@ async def get_tourist_segments():
     return SegmentsResponse(
         segments=segments,
         total_segments=len(segments),
-        model_version="v0.1.0-clustering-placeholder"
+        model_version="v0.1.0-clustering-fallback"
     )
 
 
