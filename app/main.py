@@ -7,7 +7,8 @@ app = FastAPI(title="Wenda ML Backend", version="0.1.0")
 origins = [
     "http://127.0.0.1:8000",
     "http://localhost:3000",
-    "https://backend-ml-c75p.onrender.com", 
+    "https://backend-ml-c75p.onrender.com",
+    "https://web-wenda.vercel.app",
 ]
 
 app.add_middleware(
