@@ -12,6 +12,7 @@ from sqlalchemy import (
     Text,
     ForeignKey,
     JSON,
+    Numeric,
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship
@@ -21,36 +22,33 @@ Base = declarative_base()
 
 
 class UserRole(enum.Enum):
-    tourist = "tourist"
-    operator = "operator"
+    user = "user"
     admin = "admin"
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String, primary_key=True)
     name = Column(String(100), nullable=False)
-    email = Column(String(120), nullable=False, unique=True)
-    password_hash = Column(String(255), nullable=True)
-    role = Column(String(32), nullable=False, default=UserRole.tourist.value)
-    country = Column(String(80), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    email = Column(String(255), nullable=False, unique=True)
+    password_hash = Column(String(255), nullable=False, name="password_hash")
+    role = Column(String(10), nullable=False, default=UserRole.user.value)
+    created_at = Column(DateTime, default=datetime.utcnow, name="created_at")
 
 
 class Destination(Base):
     __tablename__ = "destinations"
 
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(150), nullable=False)
-    province = Column(String(100), nullable=True)
-    description = Column(Text, nullable=True)
-    latitude = Column(Float, nullable=True)
-    longitude = Column(Float, nullable=True)
-    category = Column(String(50), nullable=True)
-    rating_avg = Column(Float, nullable=True)
-    images = Column(JSONB, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id = Column(String, primary_key=True)
+    name = Column(String(200), nullable=False)
+    province = Column(String(50), nullable=False)
+    description = Column(Text, nullable=False)
+    latitude = Column(Numeric(10, 8), nullable=False)
+    longitude = Column(Numeric(11, 8), nullable=False)
+    category_id = Column(String, ForeignKey("categories.id"), nullable=False, name="category_id")
+    rating = Column(Numeric(2, 1), nullable=False, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow, name="created_at")
 
 
 class TourismStatistics(Base):
@@ -98,11 +96,11 @@ class RecommendationsLog(Base):
     __tablename__ = "recommendations_log"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    destination_id = Column(PG_UUID(as_uuid=True), ForeignKey("destinations.id"), nullable=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, name="user_id")
+    destination_id = Column(String, ForeignKey("destinations.id"), nullable=True, name="destination_id")
     score = Column(Float, nullable=True)
-    model_version = Column(String(20), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    model_version = Column(String(20), nullable=True, name="model_version")
+    created_at = Column(DateTime, default=datetime.utcnow, name="created_at")
 
     user = relationship("User", backref="recommendations")
     destination = relationship("Destination")

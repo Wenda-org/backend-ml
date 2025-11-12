@@ -44,19 +44,33 @@ async def fetch_destinations(database_url: str) -> pd.DataFrame:
     conn = await asyncpg.connect(database_url, ssl='require')
     
     rows = await conn.fetch(
-        "SELECT id, name, province, category, description, rating_avg FROM destinations"
+        """
+        SELECT d.id, d.name, d.province, c.slug as category, d.description, 
+               CAST(d.rating AS FLOAT) as rating
+        FROM destinations d
+        LEFT JOIN categories c ON d.category_id = c.id
+        WHERE d.is_active = true AND d.deleted_at IS NULL
+        """
     )
     await conn.close()
     
     records = [dict(r) for r in rows]
     df = pd.DataFrame(records)
     
+    # Check if we have data
+    if df.empty:
+        print("⚠️  WARNING: No destinations found in database!")
+        print("    Please populate the database with destinations first.")
+        print("    Run: python scripts/populate_database.py")
+        return df
+    
     # Convert UUID to string
     df['id'] = df['id'].astype(str)
     
     # Fill missing values
     df['description'] = df['description'].fillna('')
-    df['rating_avg'] = df['rating_avg'].fillna(3.5)
+    df['rating'] = df['rating'].fillna(3.5)
+    df['category'] = df['category'].fillna('other')
     
     return df
 
@@ -103,7 +117,7 @@ def create_content_features(df: pd.DataFrame):
     
     # 4. Normalized rating
     scaler = MinMaxScaler()
-    rating_features = scaler.fit_transform(df[['rating_avg']])
+    rating_features = scaler.fit_transform(df[['rating']])
     
     # Combine all features
     # Weight: TF-IDF (0.4) + Category (0.3) + Province (0.2) + Rating (0.1)
@@ -180,7 +194,7 @@ def recommend_by_preferences(
         mask &= prov_mask
     
     if 'min_rating' in user_preferences:
-        rating_mask = df['rating_avg'] >= user_preferences['min_rating']
+        rating_mask = df['rating'] >= user_preferences['min_rating']
         mask &= rating_mask
     
     # Get filtered destinations
@@ -190,7 +204,7 @@ def recommend_by_preferences(
         return []
     
     # Sort by rating (descending)
-    filtered_df = filtered_df.sort_values('rating_avg', ascending=False)
+    filtered_df = filtered_df.sort_values('rating', ascending=False)
     
     return filtered_df.head(10).index.tolist()
 
@@ -206,11 +220,15 @@ async def main():
     # Fetch destinations
     print("\n📥 Loading destinations from database...")
     df = await fetch_destinations(database_url)
-    print(f"✅ Loaded {len(df)} destinations")
     
-    if len(df) == 0:
-        print("❌ No destinations found in database")
+    if df.empty:
+        print("\n❌ TRAINING ABORTED: No destinations found in database")
+        print("\n💡 Next steps:")
+        print("   1. Populate database: python scripts/populate_database.py")
+        print("   2. Try again: python scripts/train_recommender.py")
         return
+    
+    print(f"✅ Loaded {len(df)} destinations")
     
     # Create content features
     print("\n🔧 Creating content-based features...")
@@ -256,7 +274,7 @@ async def main():
         'feature_dim': features.shape[1],
         'categories': categories,
         'provinces': provinces,
-        'destinations': df[['id', 'name', 'province', 'category', 'rating_avg']].to_dict('records')
+        'destinations': df[['id', 'name', 'province', 'category', 'rating']].to_dict('records')
     }
     
     with open(MODEL_DIR / "recommender_metadata.json", 'w') as f:

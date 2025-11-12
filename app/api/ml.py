@@ -79,7 +79,7 @@ class DestinationRecommendation(BaseModel):
     province: str
     category: str
     description: str
-    rating_avg: Optional[float]
+    rating: Optional[float]
     score: float = Field(..., ge=0.0, le=1.0, description="Score de relevância (0-1)")
     reason: str = Field(..., description="Motivo da recomendação")
 
@@ -268,7 +268,7 @@ async def recommend_destinations(
             reasons = []
             if request.preferences.categories and rec['category'] in request.preferences.categories:
                 reasons.append(f"Matches your interest in {rec['category']}")
-            if rec['rating_avg'] and rec['rating_avg'] >= 4.5:
+            if rec.get('rating') and rec['rating'] >= 4.5:
                 reasons.append("Highly rated destination")
             if rec['province']:
                 reasons.append(f"Located in {rec['province']}")
@@ -284,7 +284,7 @@ async def recommend_destinations(
                     province=rec['province'],
                     category=rec['category'],
                     description="",  # Not in metadata, would need DB query
-                    rating_avg=rec['rating_avg'],
+                    rating=rec.get('rating'),
                     score=rec['score'],
                     reason=reason
                 )
@@ -303,7 +303,7 @@ async def recommend_destinations(
     filters = []
     
     if request.preferences.categories:
-        filters.append(Destination.category.in_(request.preferences.categories))
+        filters.append(Destination.category_id.in_(request.preferences.categories))
     
     if request.preferences.provinces:
         filters.append(Destination.province.in_(request.preferences.provinces))
@@ -312,7 +312,7 @@ async def recommend_destinations(
         query = query.where(and_(*filters))
     
     # Ordenar por rating (destinos melhor avaliados primeiro)
-    query = query.order_by(Destination.rating_avg.desc())
+    query = query.order_by(Destination.rating.desc())
     query = query.limit(request.limit)
     
     # Executar query
@@ -331,15 +331,15 @@ async def recommend_destinations(
     
     for idx, dest in enumerate(destinations):
         # Score baseado em rating + posição no ranking
-        rating_score = (dest.rating_avg or 3.5) / max_rating
+        rating_score = (float(dest.rating) if dest.rating else 3.5) / max_rating
         position_penalty = 1 - (idx * 0.05)  # Penalidade leve por posição
         score = min(1.0, rating_score * position_penalty)
         
         # Gerar razão da recomendação
         reasons = []
-        if request.preferences.categories and dest.category in request.preferences.categories:
-            reasons.append(f"Matches your interest in {dest.category}")
-        if dest.rating_avg and dest.rating_avg >= 4.5:
+        if request.preferences.categories and dest.category_id in request.preferences.categories:
+            reasons.append(f"Matches your preferred category")
+        if dest.rating and float(dest.rating) >= 4.5:
             reasons.append("Highly rated destination")
         if not reasons:
             reasons.append("Popular destination in Angola")
@@ -351,9 +351,9 @@ async def recommend_destinations(
                 destination_id=dest.id,
                 name=dest.name,
                 province=dest.province,
-                category=dest.category,
+                category=dest.category_id,
                 description=dest.description,
-                rating_avg=dest.rating_avg,
+                rating=float(dest.rating) if dest.rating else None,
                 score=round(score, 2),
                 reason=reason
             )

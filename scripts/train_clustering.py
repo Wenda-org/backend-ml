@@ -45,7 +45,13 @@ async def fetch_real_users(database_url: str) -> pd.DataFrame:
     database_url = normalize_database_url(database_url)
     conn = await asyncpg.connect(database_url, ssl='require')
     
-    rows = await conn.fetch("SELECT id, name, email, role, country FROM users WHERE role = 'tourist'")
+    # Adaptado para novo schema: role agora é 'user' ou 'admin' (não 'tourist')
+    # Campo 'country' foi removido do schema
+    rows = await conn.fetch("""
+        SELECT id, name, email, role 
+        FROM users 
+        WHERE role = 'user' AND is_active = true AND deleted_at IS NULL
+    """)
     await conn.close()
     
     return pd.DataFrame([dict(r) for r in rows])

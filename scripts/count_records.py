@@ -53,17 +53,18 @@ async def count_records():
     # Mostrar alguns exemplos
     print("\n📍 Exemplos de Destinos:")
     destinations = await conn.fetch(
-        "SELECT name, province, category, rating_avg FROM destinations LIMIT 5"
+        "SELECT d.name, d.province, c.slug as category, d.rating FROM destinations d LEFT JOIN categories c ON d.category_id = c.id WHERE d.deleted_at IS NULL LIMIT 5"
     )
     for dest in destinations:
-        print(f"  • {dest['name']:35} ({dest['province']:12}) - {dest['category']:10} - ⭐ {dest['rating_avg']}")
+        rating = float(dest['rating']) if dest['rating'] else 0
+        print(f"  • {dest['name']:35} ({dest['province']:12}) - {dest['category'] or 'N/A':10} - ⭐ {rating}")
     
     print("\n👥 Exemplos de Users:")
     users = await conn.fetch(
-        "SELECT name, email, role, country FROM users LIMIT 5"
+        "SELECT name, email, role FROM users WHERE deleted_at IS NULL LIMIT 5"
     )
     for user in users:
-        print(f"  • {user['name']:20} | {user['role']:10} | {user['country']}")
+        print(f"  • {user['name']:20} | {user['role']:10}")
     
     print("\n📈 Estatísticas por Província (Total 2022-2024):")
     stats = await conn.fetch("""

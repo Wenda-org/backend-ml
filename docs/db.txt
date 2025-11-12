@@ -1,0 +1,374 @@
+// Prisma schema for Wenda Tourism Platform
+// Database: PostgreSQL (NeonDB recommended)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USERS & AUTH ====================
+
+enum UserRole {
+  user
+  admin
+}
+
+model User {
+  id              String    @id @default(uuid())
+  name            String    @db.VarChar(100)
+  email           String    @unique @db.VarChar(255)
+  passwordHash    String    @map("password_hash") @db.VarChar(255)
+  role            UserRole  @default(user)
+  avatarUrl       String?   @map("avatar_url") @db.VarChar(500)
+  phone           String?   @db.VarChar(20)
+  bio             String?   @db.Text
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  googleId        String?   @unique @map("google_id") @db.VarChar(255)
+  appleId         String?   @unique @map("apple_id") @db.VarChar(255)
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  // Relations
+  reviews         Review[]
+  favorites       Favorite[]
+  trips           Trip[]
+  reviewHelpful   ReviewHelpful[]
+  preferences     UserPreference?
+  recommendations RecommendationsLog[]
+
+  @@index([email])
+  @@index([googleId])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserPreference {
+  id                   String   @id @default(uuid())
+  userId               String   @unique @map("user_id")
+  language             String   @default("pt") @db.VarChar(5)
+  notificationsEnabled Boolean  @default(true) @map("notifications_enabled")
+  emailNotifications   Boolean  @default(true) @map("email_notifications")
+  pushNotifications    Boolean  @default(true) @map("push_notifications")
+  favoriteCategories   Json?    @map("favorite_categories") // Array of category slugs
+  theme                String   @default("light") @db.VarChar(10)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_preferences")
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid())
+  email     String    @db.VarChar(255)
+  token     String    @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_resets")
+}
+
+// ==================== CATEGORIES ====================
+
+model Category {
+  id           String   @id @default(uuid())
+  name         String   @db.VarChar(50)
+  slug         String   @unique @db.VarChar(50)
+  description  String?  @db.Text
+  icon         String?  @db.VarChar(50)
+  color        String?  @db.VarChar(7)
+  isActive     Boolean  @default(true) @map("is_active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  destinations Destination[]
+
+  @@index([slug])
+  @@index([displayOrder])
+  @@map("categories")
+}
+
+// ==================== DESTINATIONS ====================
+
+model Destination {
+  id              String    @id @default(uuid())
+  name            String    @db.VarChar(200)
+  slug            String    @unique @db.VarChar(200)
+  description     String    @db.Text
+  longDescription String?   @map("long_description") @db.Text
+  location        String    @db.VarChar(100)
+  province        String    @db.VarChar(50)
+  address         String?   @db.Text
+  categoryId      String    @map("category_id")
+  latitude        Decimal   @db.Decimal(10, 8)
+  longitude       Decimal   @db.Decimal(11, 8)
+  openingHours    String?   @map("opening_hours") @db.VarChar(200)
+  ticketPrice     String?   @map("ticket_price") @db.VarChar(100)
+  phone           String?   @db.VarChar(20)
+  email           String?   @db.VarChar(255)
+  website         String?   @db.VarChar(500)
+  amenities       Json? // ["parking", "wifi", "restaurant", "guide", "wheelchair"]
+  accessibility   Json? // ["wheelchair", "elevator", "audio_guide", "sign_language"]
+  rating          Decimal   @default(0.0) @db.Decimal(2, 1)
+  reviewCount     Int       @default(0) @map("review_count")
+  viewCount       Int       @default(0) @map("view_count")
+  isFeatured      Boolean   @default(false) @map("is_featured")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  // Relations
+  category         Category             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images           DestinationImage[]
+  reviews          Review[]
+  favorites        Favorite[]
+  tripDestinations TripDestination[]
+  recommendations  RecommendationsLog[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([province, location])
+  @@index([latitude, longitude])
+  @@index([rating])
+  @@index([isFeatured])
+  @@map("destinations")
+}
+
+model DestinationImage {
+  id            String   @id @default(uuid())
+  destinationId String   @map("destination_id")
+  url           String   @db.VarChar(500)
+  thumbnailUrl  String   @map("thumbnail_url") @db.VarChar(500)
+  caption       String?  @db.VarChar(200)
+  isMain        Boolean  @default(false) @map("is_main")
+  displayOrder  Int      @default(0) @map("display_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@index([destinationId])
+  @@index([destinationId, isMain])
+  @@index([destinationId, displayOrder])
+  @@map("destination_images")
+}
+
+// ==================== REVIEWS ====================
+
+model Review {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  destinationId String    @map("destination_id")
+  rating        Int // 1-5 stars
+  comment       String    @db.Text
+  helpfulCount  Int       @default(0) @map("helpful_count")
+  isVerified    Boolean   @default(false) @map("is_verified")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  // Relations
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destination   Destination     @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  images        ReviewImage[]
+  reviewHelpful ReviewHelpful[]
+
+  @@unique([userId, destinationId]) // One review per user per destination
+  @@index([destinationId])
+  @@index([userId])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+model ReviewImage {
+  id           String   @id @default(uuid())
+  reviewId     String   @map("review_id")
+  url          String   @db.VarChar(500)
+  thumbnailUrl String   @map("thumbnail_url") @db.VarChar(500)
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_images")
+}
+
+model ReviewHelpful {
+  id        String   @id @default(uuid())
+  reviewId  String   @map("review_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId]) // One helpful mark per user per review
+  @@index([reviewId])
+  @@index([userId])
+  @@map("review_helpful")
+}
+
+// ==================== FAVORITES ====================
+
+model Favorite {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  destinationId String   @map("destination_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, destinationId]) // One favorite per user per destination
+  @@index([userId])
+  @@index([destinationId])
+  @@index([createdAt])
+  @@map("favorites")
+}
+
+// ==================== TRIPS ====================
+
+enum TripStatus {
+  upcoming
+  ongoing
+  completed
+  cancelled
+}
+
+model Trip {
+  id        String     @id @default(uuid())
+  userId    String     @map("user_id")
+  name      String     @db.VarChar(100)
+  startDate DateTime   @map("start_date") @db.Date
+  endDate   DateTime   @map("end_date") @db.Date
+  notes     String?    @db.Text
+  status    TripStatus @default(upcoming)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  deletedAt DateTime?  @map("deleted_at")
+
+  // Relations
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripDestinations TripDestination[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@index([createdAt])
+  @@map("trips")
+}
+
+model TripDestination {
+  id            String    @id @default(uuid())
+  tripId        String    @map("trip_id")
+  destinationId String    @map("destination_id")
+  displayOrder  Int       @default(0) @map("display_order")
+  visitDate     DateTime? @map("visit_date") @db.Date
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  trip        Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, destinationId]) // One destination per trip (no duplicates)
+  @@index([tripId])
+  @@index([destinationId])
+  @@index([tripId, displayOrder])
+  @@map("trip_destinations")
+}
+
+// ==================== MACHINE LEARNING TABLES ====================
+
+// Tourism Statistics - Dados históricos de turismo por província
+model TourismStatistics {
+  id               Int      @id @default(autoincrement())
+  province         String   @db.VarChar(100)
+  month            Int
+  year             Int
+  domesticVisitors Int?     @map("domestic_visitors")
+  foreignVisitors  Int?     @map("foreign_visitors")
+  occupancyRate    Float?   @map("occupancy_rate") @db.DoublePrecision
+  avgStayDays      Float?   @map("avg_stay_days") @db.DoublePrecision
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([province])
+  @@index([year, month])
+  @@map("tourism_statistics")
+}
+
+// ML Models Registry - Registro de modelos de ML treinados
+model MLModelsRegistry {
+  id          Int       @id @default(autoincrement())
+  modelName   String    @map("model_name") @db.VarChar(100)
+  version     String    @db.VarChar(20)
+  algorithm   String?   @db.VarChar(100)
+  metrics     Json?     @db.JsonB
+  status      String    @default("active") @db.VarChar(20)
+  trainedOn   DateTime? @map("trained_on") @db.Date
+  lastUpdated DateTime  @default(now()) @map("last_updated")
+
+  @@index([modelName])
+  @@index([status])
+  @@map("ml_models_registry")
+}
+
+// ML Predictions - Previsões geradas pelos modelos de ML
+model MLPredictions {
+  id                 Int      @id @default(autoincrement())
+  modelName          String   @map("model_name") @db.VarChar(100)
+  modelVersion       String?  @map("model_version") @db.VarChar(20)
+  province           String   @db.VarChar(100)
+  month              Int
+  year               Int
+  predictedVisitors  Int?     @map("predicted_visitors")
+  confidenceInterval Json?    @map("confidence_interval") @db.JsonB
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([province])
+  @@index([year, month])
+  @@index([modelName])
+  @@map("ml_predictions")
+}
+
+// Recommendations Log - Log de recomendações geradas para usuários
+model RecommendationsLog {
+  id            Int      @id @default(autoincrement())
+  userId        String?  @map("user_id")
+  destinationId String?  @map("destination_id")
+  score         Float?   @db.DoublePrecision
+  modelVersion  String?  @map("model_version") @db.VarChar(20)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  destination Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([destinationId])
+  @@index([createdAt])
+  @@map("recommendations_log")
+}

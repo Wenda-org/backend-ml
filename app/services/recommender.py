@@ -128,8 +128,8 @@ class RecommenderService:
                     'destination_id': dest['id'],
                     'name': dest['name'],
                     'province': dest['province'],
-                    'category': dest['category'],
-                    'rating_avg': dest['rating_avg'],
+                    'category': dest.get('category', dest.get('category_id')),
+                    'rating': dest.get('rating', dest.get('rating_avg')),
                     'similarity_score': float(sim_scores[idx])
                 })
         
@@ -164,22 +164,24 @@ class RecommenderService:
         # Filter by preferences
         filtered = []
         for dest in destinations:
-            # Check category
-            if categories and dest['category'] not in categories:
+            # Check category (support both old and new field names)
+            dest_category = dest.get('category', dest.get('category_id'))
+            if categories and dest_category not in categories:
                 continue
             
             # Check province
             if provinces and dest['province'] not in provinces:
                 continue
             
-            # Check rating
-            if min_rating and dest['rating_avg'] < min_rating:
+            # Check rating (support both old and new field names)
+            dest_rating = dest.get('rating', dest.get('rating_avg', 0))
+            if min_rating and dest_rating < min_rating:
                 continue
             
             filtered.append(dest)
         
         # Sort by rating (descending)
-        filtered.sort(key=lambda x: x['rating_avg'] or 0, reverse=True)
+        filtered.sort(key=lambda x: x.get('rating', x.get('rating_avg', 0)), reverse=True)
         
         # Take top N
         top_recommendations = filtered[:n_recommendations]
@@ -188,13 +190,14 @@ class RecommenderService:
         max_rating = 5.0
         recommendations = []
         for dest in top_recommendations:
-            score = (dest['rating_avg'] or 3.5) / max_rating
+            dest_rating = dest.get('rating', dest.get('rating_avg', 3.5))
+            score = dest_rating / max_rating
             recommendations.append({
                 'destination_id': dest['id'],
                 'name': dest['name'],
                 'province': dest['province'],
-                'category': dest['category'],
-                'rating_avg': dest['rating_avg'],
+                'category': dest.get('category', dest.get('category_id')),
+                'rating': dest_rating,
                 'score': round(score, 2)
             })
         
