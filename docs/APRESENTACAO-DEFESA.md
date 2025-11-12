@@ -72,6 +72,15 @@ Oportunidade:
 - "Três objetivos principais: prever demanda futura, recomendar destinos personalizados, e segmentar turistas."
 - "Tudo isso deployado em produção com API REST funcional que já está servindo previsões reais."
 
+
+
+
+Criar uma plataforma unificada que integre dados turísticos e ofereça análises inteligentes.
+Fornecer previsões de procura por destinos e períodos específicos, apoiando o planeamento de operadores e gestores.
+Gerar recomendações personalizadas de destinos com base nos perfis e preferências dos turistas.
+Oferecer segmentação automática de perfis turísticos para apoiar campanhas e estratégias direcionadas.
+Facilitar o acesso a essas informações por meio de uma API moderna e fácil de integrar com outras aplicações.
+
 ---
 
 ### **SLIDE 4: Alinhamento com os ODS (SDGs)**
