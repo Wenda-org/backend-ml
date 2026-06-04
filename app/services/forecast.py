@@ -25,6 +25,7 @@ class ForecastService:
     def __init__(self):
         self._models: Dict[str, any] = {}
         self._metrics: Dict[str, dict] = {}
+        self._prediction_cache: Dict[tuple, dict] = {}
         
     def _normalize_province(self, province: str) -> str:
         """Normalize province name to match file naming."""
@@ -101,6 +102,10 @@ class ForecastService:
             dict with keys: predicted_visitors, confidence_interval (lower, upper)
             or None if model not available
         """
+        cache_key = (province, year, month, occupancy_rate, avg_stay_days)
+        if cache_key in self._prediction_cache:
+            return self._prediction_cache[cache_key]
+
         model = self._load_model(province)
         
         if not model:
@@ -128,13 +133,15 @@ class ForecastService:
             lower = max(0, prediction - margin)
             upper = prediction + margin
         
-        return {
+        result = {
             'predicted_visitors': int(round(prediction)),
             'confidence_interval': {
                 'lower': int(round(lower)),
                 'upper': int(round(upper))
             }
         }
+        self._prediction_cache[cache_key] = result
+        return result
 
 
 # Global singleton instance
