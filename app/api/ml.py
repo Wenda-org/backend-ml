@@ -146,13 +146,18 @@ async def forecast_visitors(
     forecast_service = get_forecast_service()
     
     # Tentar usar modelo treinado
-    prediction = forecast_service.predict(
-        province=request.province,
-        year=request.year,
-        month=request.month,
-        occupancy_rate=0.0,  # Pode ser expandido para aceitar no request
-        avg_stay_days=0.0
-    )
+    prediction = None
+    try:
+        prediction = forecast_service.predict(
+            province=request.province,
+            year=request.year,
+            month=request.month,
+            occupancy_rate=0.0,  # Pode ser expandido para aceitar no request
+            avg_stay_days=0.0
+        )
+    except Exception as e:
+        print(f"Error predicting with model for {request.province}: {e}")
+        prediction = None
     
     if prediction:
         # Modelo disponível - usar predição real
