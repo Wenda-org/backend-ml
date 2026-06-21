@@ -171,34 +171,38 @@ async def forecast_visitors(
         )
     
     # Fallback: modelo não disponível - usar baseline
-    # Buscar dados históricos do mesmo mês
-    query = select(
-        func.avg(
-            TourismStatistics.domestic_visitors + TourismStatistics.foreign_visitors
-        ).label("avg_visitors")
-    ).where(
-        and_(
-            TourismStatistics.province == request.province,
-            TourismStatistics.month == request.month
+    province_base_visitors = {
+        "Luanda": 12000,
+        "Benguela": 4500,
+        "Huila": 3000,
+        "Namibe": 1500,
+        "Cunene": 800,
+        "Malanje": 2000,
+    }
+    
+    avg_historical = province_base_visitors.get(request.province, 2000)
+    
+    # Try to get historical data from DB, fall back to province base on error
+    try:
+        query = select(
+            func.avg(
+                TourismStatistics.domestic_visitors + TourismStatistics.foreign_visitors
+            ).label("avg_visitors")
+        ).where(
+            and_(
+                TourismStatistics.province == request.province,
+                TourismStatistics.month == request.month
+            )
         )
-    )
-    
-    result = await db.execute(query)
-    row = result.first()
-    
-    if not row or row.avg_visitors is None:
-        # Fallback: usar valor base por província
-        province_base_visitors = {
-            "Luanda": 12000,
-            "Benguela": 4500,
-            "Huila": 3000,
-            "Namibe": 1500,
-            "Cunene": 800,
-            "Malanje": 2000,
-        }
-        avg_historical = province_base_visitors.get(request.province, 2000)
-    else:
-        avg_historical = int(row.avg_visitors)
+        
+        result = await db.execute(query)
+        row = result.first()
+        
+        if row and row.avg_visitors is not None:
+            avg_historical = int(row.avg_visitors)
+    except Exception as db_err:
+        print(f"DB query error for forecast fallback ({request.province}): {db_err}")
+        # avg_historical already set from province_base_visitors
     
     # Aplicar tendência de crescimento (5% ao ano desde 2024)
     years_ahead = request.year - 2024
@@ -301,73 +305,84 @@ async def recommend_destinations(
         )
     
     # Fallback: model not available - use database query
-    # Construir query base
-    query = select(Destination)
-    
-    # Aplicar filtros de preferências
-    filters = []
-    
-    if request.preferences.categories:
-        filters.append(Destination.category_id.in_(request.preferences.categories))
-    
-    if request.preferences.provinces:
-        filters.append(Destination.province.in_(request.preferences.provinces))
-    
-    if filters:
-        query = query.where(and_(*filters))
-    
-    # Ordenar por rating (destinos melhor avaliados primeiro)
-    query = query.order_by(Destination.rating.desc())
-    query = query.limit(request.limit)
-    
-    # Executar query
-    result = await db.execute(query)
-    destinations = result.scalars().all()
-    
-    if not destinations:
-        raise HTTPException(
-            status_code=404,
-            detail="Nenhum destino encontrado com as preferências fornecidas"
-        )
-    
-    # Calcular scores e razões
-    recommendations = []
-    max_rating = 5.0
-    
-    for idx, dest in enumerate(destinations):
-        # Score baseado em rating + posição no ranking
-        rating_score = (float(dest.rating) if dest.rating else 3.5) / max_rating
-        position_penalty = 1 - (idx * 0.05)  # Penalidade leve por posição
-        score = min(1.0, rating_score * position_penalty)
+    # NOTE: preferences.categories are slugs/names (e.g. "natureza", "nature"),
+    # but Destination.category_id is a UUID. We cannot filter by category slug here.
+    # Instead, we filter only by province and return top-rated destinations.
+    try:
+        query = select(Destination)
         
-        # Gerar razão da recomendação
-        reasons = []
-        if request.preferences.categories and dest.category_id in request.preferences.categories:
-            reasons.append(f"Matches your preferred category")
-        if dest.rating and float(dest.rating) >= 4.5:
-            reasons.append("Highly rated destination")
-        if not reasons:
-            reasons.append("Popular destination in Angola")
+        # Only apply province filter (provinces are plain strings in DB)
+        if request.preferences.provinces:
+            query = query.where(Destination.province.in_(request.preferences.provinces))
         
-        reason = " | ".join(reasons)
+        # Ordenar por rating (destinos melhor avaliados primeiro)
+        query = query.order_by(Destination.rating.desc().nullslast())
+        query = query.limit(request.limit)
         
-        recommendations.append(
-            DestinationRecommendation(
-                destination_id=dest.id,
-                name=dest.name,
-                province=dest.province,
-                category=dest.category_id,
-                description=dest.description,
-                rating=float(dest.rating) if dest.rating else None,
-                score=round(score, 2),
-                reason=reason
+        # Executar query
+        result = await db.execute(query)
+        destinations = result.scalars().all()
+        
+        # If province filter returned no results, fall back to global top-rated
+        if not destinations:
+            fallback_query = select(Destination).order_by(
+                Destination.rating.desc().nullslast()
+            ).limit(request.limit)
+            result = await db.execute(fallback_query)
+            destinations = result.scalars().all()
+        
+        if not destinations:
+            raise HTTPException(
+                status_code=404,
+                detail="Nenhum destino encontrado"
             )
+        
+        # Calcular scores e razões
+        recommendations = []
+        max_rating = 5.0
+        
+        for idx, dest in enumerate(destinations):
+            # Score baseado em rating + posição no ranking
+            rating_score = (float(dest.rating) if dest.rating else 3.5) / max_rating
+            position_penalty = 1 - (idx * 0.05)  # Penalidade leve por posição
+            score = min(1.0, rating_score * position_penalty)
+            
+            # Gerar razão da recomendação
+            reasons = []
+            if dest.rating and float(dest.rating) >= 4.5:
+                reasons.append("Highly rated destination")
+            if dest.province and request.preferences.provinces and dest.province in request.preferences.provinces:
+                reasons.append(f"Located in your preferred region")
+            if not reasons:
+                reasons.append("Popular destination in Angola")
+            
+            reason = " | ".join(reasons)
+            
+            recommendations.append(
+                DestinationRecommendation(
+                    destination_id=dest.id,
+                    name=dest.name,
+                    province=dest.province,
+                    category=str(dest.category_id) if dest.category_id else "",
+                    description=dest.description or "",
+                    rating=float(dest.rating) if dest.rating else None,
+                    score=round(score, 2),
+                    reason=reason
+                )
+            )
+        
+        return RecommendResponse(
+            recommendations=recommendations,
+            model_version="v0.1.0-content-filter-fallback"
         )
-    
-    return RecommendResponse(
-        recommendations=recommendations,
-        model_version="v0.1.0-content-filter-fallback"
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in recommend fallback DB query: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching recommendations: {str(e)}"
+        )
 
 
 @router.get("/segments", response_model=SegmentsResponse)
@@ -634,3 +649,133 @@ async def ml_health_check():
         "model_status": "trained models available" if available_models else "using fallback",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+
+# ============================================================================
+# Endpoints de Jobs (fila de treino/inferência)
+# ============================================================================
+
+import uuid as _uuid_mod
+
+# In-memory job store (resets on restart, acceptable for demo/staging)
+_jobs_store: dict = {}
+
+
+class JobCreateRequest(BaseModel):
+    """Request para criar um job de ML"""
+    type: str = Field(..., description="Tipo do job: retrain, inference, export")
+    payload: Optional[dict] = Field(default=None, description="Dados adicionais para o job")
+
+
+class JobItem(BaseModel):
+    """Item de job ML"""
+    id: str
+    type: str
+    status: str = Field(..., description="pending | running | finished | failed")
+    progress: Optional[int] = Field(default=0)
+    created_at: str
+    finished_at: Optional[str] = None
+    result_url: Optional[str] = None
+    logs: list = Field(default_factory=list)
+    payload: Optional[dict] = None
+
+
+class JobsListResponse(BaseModel):
+    """Lista de jobs"""
+    data: list
+    meta: dict = Field(default_factory=dict)
+
+
+@router.get("/jobs", response_model=JobsListResponse)
+async def list_jobs():
+    """
+    Lista todos os jobs de ML (treino, inferência, exportação).
+    Jobs são armazenados em memória — resetam ao reiniciar o serviço.
+    """
+    jobs = list(_jobs_store.values())
+    # Sort by created_at descending
+    jobs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return JobsListResponse(data=jobs, meta={"total": len(jobs)})
+
+
+@router.post("/jobs", response_model=JobItem)
+async def create_job(request: JobCreateRequest):
+    """
+    Cria um novo job de ML (treino, inferência, etc).
+    Em ambiente de produção, isso poderia enfileirar uma tarefa assíncrona real.
+    """
+    valid_types = ["retrain", "inference", "export", "evaluate", "sync"]
+    if request.type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tipo de job inválido. Use um de: {', '.join(valid_types)}"
+        )
+    
+    job_id = str(_uuid_mod.uuid4())
+    now = datetime.utcnow().isoformat()
+    
+    job = {
+        "id": job_id,
+        "type": request.type,
+        "status": "pending",
+        "progress": 0,
+        "created_at": now,
+        "finished_at": None,
+        "result_url": None,
+        "logs": [
+            f"[{now}] Job {request.type} criado",
+            f"[{now}] Aguardando execução..."
+        ],
+        "payload": request.payload or {}
+    }
+    
+    _jobs_store[job_id] = job
+    
+    # Simulate job completion for demo purposes (mark as finished after creation)
+    import asyncio
+    async def _simulate_job(jid: str, jtype: str):
+        await asyncio.sleep(2)
+        if jid in _jobs_store:
+            ts = datetime.utcnow().isoformat()
+            _jobs_store[jid]["status"] = "finished"
+            _jobs_store[jid]["progress"] = 100
+            _jobs_store[jid]["finished_at"] = ts
+            _jobs_store[jid]["logs"].append(f"[{ts}] Job {jtype} concluído com sucesso")
+    
+    asyncio.create_task(_simulate_job(job_id, request.type))
+    
+    return JobItem(**job)
+
+
+@router.get("/jobs/{job_id}", response_model=JobItem)
+async def get_job(job_id: str):
+    """
+    Retorna o estado de um job de ML pelo ID.
+    """
+    job = _jobs_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} não encontrado")
+    return JobItem(**job)
+
+
+@router.post("/jobs/{job_id}/cancel", response_model=JobItem)
+async def cancel_job(job_id: str):
+    """
+    Cancela um job de ML pendente ou em execução.
+    """
+    job = _jobs_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} não encontrado")
+    
+    if job["status"] in ("finished", "failed"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Job já está no estado '{job['status']}' e não pode ser cancelado"
+        )
+    
+    ts = datetime.utcnow().isoformat()
+    job["status"] = "failed"
+    job["finished_at"] = ts
+    job["logs"].append(f"[{ts}] Job cancelado pelo utilizador")
+    
+    return JobItem(**job)
